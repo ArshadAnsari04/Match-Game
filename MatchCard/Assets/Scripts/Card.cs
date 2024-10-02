@@ -9,7 +9,8 @@ public class Card : MonoBehaviour
     private int id;
     private bool flipped;
     private bool turning;
-    [SerializeField] private Image imgRef;
+    [SerializeField]
+    private Image img;
 
     // flip card animation
     // if changeSprite specified, will 90 degree, change to back/front sprite before flipping another 90 degree
@@ -40,24 +41,41 @@ public class Card : MonoBehaviour
     public void Flip()
     {
         turning = true;
-       
+        SoundManager.Instance.PlayFlipSound();
         StartCoroutine(FlipTheCard(transform, 0.25f, true));
     }
     // toggle front/back sprite
     private void ChangeSprite()
     {
-        if (spriteID == -1 || imgRef == null) return;
+        if (spriteID == -1 || img == null) return;
         if (flipped)
-            imgRef.sprite = CardGameManager.Instance.GetSprite(spriteID);
+            img.sprite = CardGameManager.Instance.GetSprite(spriteID);
         else
-            imgRef.sprite = CardGameManager.Instance.CardBack();
+            img.sprite = CardGameManager.Instance.CardBack();
     }
- 
+    // call fade animation
+    public void Inactive()
+    {
+        StartCoroutine(Fade());
+    }
+    // play fade animation by changing alpha of img's color
+    private IEnumerator Fade()
+    {
+        float rate = 1.0f / 2.5f;
+        float t = 0.0f;
+        while (t < 1.0f)
+        {
+            t += Time.deltaTime * rate;
+            img.color = Color.Lerp(img.color, Color.clear, t);
+
+            yield return null;
+        }
+    }
     // set card to be active color
     public void Active()
     {
-        if (imgRef)
-            imgRef.color = Color.white;
+        if (img)
+            img.color = Color.white;
     }
     // spriteID getter and setter
     public int SpriteID
@@ -82,6 +100,18 @@ public class Card : MonoBehaviour
         transform.rotation = Quaternion.Euler(new Vector3(0, 180, 0));
         flipped = true;
     }
-  
-   
+    // card onclick event
+    public void CardBtn()
+    {
+        if (flipped || turning) return;
+      //  if (!CardGameManager.Instance.CanClick()) return;
+        Flip();
+        StartCoroutine(SelectionEvent());
+    }
+    // inform manager card is selected with a slight delay
+    private IEnumerator SelectionEvent()
+    {
+        yield return new WaitForSeconds(0.5f);
+        CardGameManager.Instance.CardClicked(spriteID, id);
+    }
 }

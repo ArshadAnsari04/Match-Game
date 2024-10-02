@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class CardGameManager : Singleton<CardGameManager>
 {
@@ -9,10 +10,16 @@ public class CardGameManager : Singleton<CardGameManager>
     [SerializeField] RectTransform cardParent; // Parent container for cards
     [SerializeField] private CardTextureData cardTextureData; // Card textures (front and back)
     [SerializeField] RectTransform panel; // Panel for card grid
-
    
+    // Game state variables
+    private int spriteSelected; // Stores currently selected sprite ID
+    private int cardSelected; // Stores currently selected card ID
+    private int cardLeft; // Number of unmatched cards left
+    private bool gameStart; // Boolean to track if game has started
     private Card[] cards; // Array of card objects
-  
+    private int score; // Player's score
+    private int matchCount; // Number of matches made
+
     private void Start()
     {
         // Hide the panel at the start of the game
@@ -23,19 +30,42 @@ public class CardGameManager : Singleton<CardGameManager>
     public void StartCardGame()
     {
         GameStateManager.Instance.SetState(new PlayingState()); // Set game state to playing
-      
+        UIManager.Instance.ResetUI(); // Reset the UI before starting
 
         panel.gameObject.SetActive(true); // Display the card panel
 
         // Using the CardFactory to create and set up cards
         var cardFactory = new CardFactory(prefab, cardParent, panel);
         cards = cardFactory.CreateCards(5, 5); // Create a 5x5 grid of cards
-      
+        matchCount = 0; // Reset match count
+        score = 0; // Reset score
+        spriteSelected = -1; // Reset selected sprite ID
+        cardSelected = -1; // Reset selected card ID
+        cardLeft = cards.Length; // Set remaining cards to total card count
+
         AllocateSpritesToCards(); // Assign sprites to cards
         StartCoroutine(HideFace()); // Hide card faces after showing them briefly
     }
 
-   
+    // Check if the player has won the game (i.e., all cards matched)
+    private void CheckGameWin()
+    {
+        if (cardLeft == 0)
+        {
+            
+            // Set game state to win state and save progress
+            GameStateManager.Instance.SetState(new GameWinState());
+            SaveLoadSystem.Instance.SaveGame(score, matchCount); // Save the score and match count
+        }
+    }
+
+    // Game over logic, called when the game is over
+    public void GameOver()
+    {
+        
+        GameStateManager.Instance.SetState(new GameOverState()); // Switch to game over state
+    }
+
     // Allocate random sprites to cards ensuring each sprite appears twice
     private void AllocateSpritesToCards()
     {
@@ -86,6 +116,58 @@ public class CardGameManager : Singleton<CardGameManager>
     {
         return cardTextureData.backTexture;
     }
+
+    // Check if the player can click on cards
+    public bool CanClick()
+    {
+        return gameStart;
+    }
+
+    // Handle card click logic
+    public void CardClicked(int spriteId, int cardId)
+    {
+        if (spriteSelected == -1)
+        {
+            // First card clicked, store selected sprite and card ID
+            spriteSelected = spriteId;
+            cardSelected = cardId;
+        }
+        else
+        {
+            if (spriteSelected == spriteId)
+            {
+                SoundManager.Instance.PlayMatchSound();
+                // A match is found
+                score += 1; // Increase score
+                matchCount++; // Increase match count
+                UIManager.Instance.UpdateScore(score); // Update score on UI
+                UIManager.Instance.UpdateMatchCount(matchCount); // Update match count on UI
+
+                cards[cardSelected].Inactive(); // Deactivate matched cards
+                cards[cardId].Inactive();
+                cardLeft -= 2; // Decrease the number of remaining cards
+                CheckGameWin(); // Check if the player has won
+            }
+            else
+            {
+                // No match, flip cards back
+                cards[cardSelected].Flip();
+                cards[cardId].Flip();
+            }
+
+            // Reset selected cards
+            spriteSelected = -1;
+            cardSelected = -1;
+        }
+    }
+
+    // End game and hide the card panel
+    private void EndGame()
+    {
+        gameStart = false;
+        panel.gameObject.SetActive(false); // Hide the card panel
+    }
+
     // Coroutine to briefly show card faces, then hide them
     private IEnumerator HideFace()
     {

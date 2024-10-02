@@ -6,7 +6,7 @@ public class GameOverState : IGameState
     public void EnterState()
     {
         Debug.Log("Game Over");
-      
+        UIManager.Instance.ShowGameOverScreen();
     }
 
     public void UpdateState()
