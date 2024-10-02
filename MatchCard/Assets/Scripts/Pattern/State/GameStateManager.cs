@@ -1,5 +1,5 @@
 using UnityEngine;
-public class GameStateManager : MonoBehaviour 
+public class GameStateManager : Singleton<GameStateManager> 
 {
     private IGameState currentState;
 
