@@ -124,10 +124,7 @@ public class CardGameManager : Singleton<CardGameManager>
         SaveLoadSystem.Instance.SaveGame(score, matchCount, cards, cardLeft, removedCardIDs, GetCurrentDifficulty());
     }
 
-    private void OnApplicationQuit()
-    {
-        SaveGame();
-    }
+    
 
     #endregion
 

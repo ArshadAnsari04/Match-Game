@@ -64,7 +64,17 @@ public class UIManager : Singleton<UIManager>
         // Reload the current scene
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
-    
+    public void OnApplicationQuit()
+    {
+        CardGameManager.Instance.SaveGame();
+        Application.Quit();
+
+    }
+    public void OnSaveButtonClick()
+    {
+        CardGameManager.Instance.SaveGame();
+        
+    }
     public void ResetUI()
     {
         scoreText.text = "Score: 0";
