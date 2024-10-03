@@ -1,23 +1,24 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class CardFactory
 {
-    private GameObject prefab;          // Card prefab
-    private Transform cardListParent;   // Parent object for cards
-    private RectTransform panel;        // Panel for setting the card layout
-    private float padding;              // Padding between the cards
+    private GameObject prefab;
+    private Transform cardListParent;
+    private RectTransform panel;
+    private CardTextureData cardTextureData;
+    private float padding;
 
-    public CardFactory(GameObject prefab, Transform cardListParent, RectTransform panel, float padding = 10f)
+    public CardFactory(GameObject prefab, Transform cardListParent, RectTransform panel, CardTextureData cardTextureData, float padding)
     {
         this.prefab = prefab;
         this.cardListParent = cardListParent;
         this.panel = panel;
+        this.cardTextureData = cardTextureData;
         this.padding = padding;
     }
 
-    public Card[] CreateCards(int rows, int cols)
+    public Card[] CreateCards(int rows, int cols, HashSet<int> removedCardIDs)
     {
         int totalCards = rows * cols;
 
@@ -25,7 +26,7 @@ public class CardFactory
         bool isOddGrid = (rows % 2 != 0) && (cols % 2 != 0);
 
         // Adjust array size only if the grid is odd
-        Card[] cards = isOddGrid ? new Card[totalCards - 1] : new Card[totalCards];
+        Card[] cards = new Card[totalCards];
 
         // Remove all previous card game objects from parent
         foreach (Transform child in cardListParent)
@@ -73,12 +74,27 @@ public class CardFactory
                     continue;
                 }
 
+                // Skip already removed cards
+                if (removedCardIDs.Contains(cardIndex))
+                {
+                    curX += cardWidth + padding;
+                    cardIndex++;
+                    continue; // Skip creating this card
+                }
+
                 // Instantiate the card prefab
-                GameObject cardObject = GameObject.Instantiate(prefab);
-                cardObject.transform.SetParent(cardListParent, false);  // Set the parent without modifying scale
+                GameObject cardObject = GameObject.Instantiate(prefab, cardListParent);
+                cardObject.transform.localScale = Vector3.one; // Ensure the scale is correct
 
                 // Get Card component
                 Card card = cardObject.GetComponent<Card>();
+
+                // Check if card is successfully created
+                if (card == null)
+                {
+                    Debug.LogError("Card component is null after instantiation!");
+                    continue;
+                }
 
                 // Set card size based on calculated dimensions
                 RectTransform cardRect = cardObject.GetComponent<RectTransform>();
@@ -87,9 +103,11 @@ public class CardFactory
                 // Set card position
                 cardObject.transform.localPosition = new Vector3(curX, curY, 0);
 
-                // Add the card to the array
+                // Set card ID
                 cards[cardIndex] = card;
                 cards[cardIndex].ID = cardIndex;
+
+                Debug.Log($"Card created at index {cardIndex} with ID {cards[cardIndex].ID}");
 
                 // Move X to the right for the next card
                 curX += cardWidth + padding;
@@ -102,4 +120,10 @@ public class CardFactory
 
         return cards;
     }
+
+
+
+
+
+
 }
