@@ -92,7 +92,7 @@ public class CardFactory
                 // Check if card is successfully created
                 if (card == null)
                 {
-                    Debug.LogError("Card component is null after instantiation!");
+                   
                     continue;
                 }
 
@@ -107,8 +107,7 @@ public class CardFactory
                 cards[cardIndex] = card;
                 cards[cardIndex].ID = cardIndex;
 
-                Debug.Log($"Card created at index {cardIndex} with ID {cards[cardIndex].ID}");
-
+                
                 // Move X to the right for the next card
                 curX += cardWidth + padding;
                 cardIndex++;

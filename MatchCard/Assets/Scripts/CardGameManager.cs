@@ -38,7 +38,6 @@ public class CardGameManager : Singleton<CardGameManager>
 
         if (loadPreviousGame)
         {
-           
             LoadGame();
         }
         else
@@ -72,89 +71,43 @@ public class CardGameManager : Singleton<CardGameManager>
             matchCount = gameData.matchCount;
             cardLeft = gameData.cardLeft;
 
-            SetDifficulty(gameData.difficultyLevel); // Set the difficulty level
-
+            SetDifficulty(gameData.difficultyLevel);
+            
             var cardFactory = new CardFactory(prefab, cardParent, panel, cardTextureData, 10);
             var removedCardIDsHashSet = new HashSet<int>(gameData.removedCardIDs);
             cards = cardFactory.CreateCards(rows, columns, removedCardIDsHashSet);
             spriteSelected = -1;
 
-            // Restore each card's state
             foreach (var cardData in gameData.cardData)
             {
-                // Check for valid ID
-                if (cardData.id < 0 || cardData.id >= cards.Length)
-                {
-                    Debug.LogError($"Card at index {cardData.id} is out of bounds!");
-                    continue; // Skip invalid cards
-                }
+                if (cardData.id < 0 || cardData.id >= cards.Length) continue;
 
                 Card card = cards[cardData.id];
+                if (card == null) continue;
 
-                // Check for null card
-                if (card == null)
-                {
-                    Debug.LogError($"Card at index {cardData.id} is null!");
-                    continue; // Skip null cards
-                }
-
-                // If this card was removed, destroy it
                 if (removedCardIDsHashSet.Contains(card.ID))
                 {
-                    Destroy(card.gameObject); // Remove matched card
-                    continue; // Skip further processing for this card
+                    Destroy(card.gameObject);
+                    continue;
                 }
 
-                // Restore the card's sprite and flipped state
                 card.RestoreState(cardData.flipped, cardData.spriteID);
-                if (!cardData.flipped) // Only activate if the card isn't flipped
-                {
-                    card.Active(); // Ensure the card is active if not matched
-                }
+                if (!cardData.flipped) card.Active();
+                if (cardData.flipped) CardClicked(cardData.spriteID, cardData.id);
 
-                // Cache the Image component for better performance
                 Image cardImage = card.GetComponent<Image>();
-                // Set the sprite based on the flipped state
                 cardImage.sprite = cardData.flipped ? GetSprite(cardData.spriteID) : CardBack();
             }
 
-            // Update UI elements with the loaded values
             UIManager.Instance.UpdateScore(score);
             UIManager.Instance.UpdateMatchCount(matchCount);
         }
-        else
-        {
-            Debug.Log("Game data is null! Unable to load the game.");
-        }
     }
-
-
-
-
-    private IEnumerator FlipRemainingCardsToBack()
-    {
-        yield return new WaitForSeconds(0.3f); // Add a small delay for smoother animation
-
-        foreach (var card in cards)
-        {
-            if (card != null && !removedCardIDs.Contains(card.ID) && card.Flipped)
-            {
-                // Ensure the card flips back to show the back image
-                card.Flip();  // This will flip it back to the back image
-            }
-        }
-
-        yield return new WaitForSeconds(0.5f); // Wait for the animations to complete
-    }
-
-
-
 
     private void CheckGameWin()
     {
         if (cardLeft == 0)
         {
-          
             GameStateManager.Instance.SetState(new GameWinState());
             SaveLoadSystem.Instance.ResetSaveData();
         }
@@ -162,7 +115,6 @@ public class CardGameManager : Singleton<CardGameManager>
 
     public void GameOver()
     {
-        
         SaveLoadSystem.Instance.ResetSaveData();
         GameStateManager.Instance.SetState(new GameOverState());
     }
@@ -170,13 +122,11 @@ public class CardGameManager : Singleton<CardGameManager>
     public void SaveGame()
     {
         SaveLoadSystem.Instance.SaveGame(score, matchCount, cards, cardLeft, removedCardIDs, GetCurrentDifficulty());
-       
     }
 
     private void OnApplicationQuit()
     {
         SaveGame();
-        
     }
 
     #endregion
@@ -185,97 +135,46 @@ public class CardGameManager : Singleton<CardGameManager>
 
     public void CardClicked(int spriteId, int cardId)
     {
-        // Ensure cardId is within the bounds of the cards array and not null
-        if (cardId < 0 || cardId >= cards.Length || cards[cardId] == null)
-        {
-            Debug.LogError($"Invalid card ID: {cardId}");
-            return; // Exit if the card is invalid
-        }
+        if (cardId < 0 || cardId >= cards.Length || cards[cardId] == null) return;
 
-        // Ignore clicks on already matched (removed) cards
-        if (removedCardIDs.Contains(cards[cardId].ID))
-            return;
+        if (removedCardIDs.Contains(cards[cardId].ID)) return;
 
-        // First card selected
         if (spriteSelected == -1)
         {
-           
-            // Set the first selected card
             spriteSelected = spriteId;
             cardSelected = cardId;
-            cards[cardId].Active(); // Activate the clicked card
+            cards[cardId].Active();
         }
         else
         {
-           
-
-            // Check if the two cards match
             if (spriteSelected == spriteId)
             {
-                // Cards match: add them to the removed set and destroy them
                 removedCardIDs.Add(cards[cardSelected].ID);
                 removedCardIDs.Add(cards[cardId].ID);
-
                 matchCount++;
                 score += 1;
-
-                // Update score and match count in the UI
                 UpdateScoreAndMatchCount();
-
-                // Destroy the matched cards
                 Destroy(cards[cardSelected].gameObject);
                 Destroy(cards[cardId].gameObject);
-
-                // Decrease the count of remaining cards
                 cardLeft -= 2;
-
-                // Check if all cards have been matched (game win)
                 CheckGameWin();
             }
             else
             {
-                // Cards don't match: flip them back after a delay
                 StartCoroutine(FlipBack(cards[cardSelected], cards[cardId]));
             }
 
-            // Reset for the next card selection
             spriteSelected = -1;
             cardSelected = -1;
         }
     }
 
-
-
-
-
     private IEnumerator FlipBack(Card firstCard, Card secondCard)
     {
-        // Check if either card is null
-        if (firstCard == null)
-        {
-            Debug.LogError("First card is null!");
-            yield break; // Exit the coroutine early
-        }
-
-        if (secondCard == null)
-        {
-            Debug.LogError("Second card is null!");
-            yield break; // Exit the coroutine early
-        }
-
         yield return new WaitForSeconds(0.5f);
-
-        // Flip the cards back
         firstCard.Flip();
         secondCard.Flip();
     }
-
-    //private IEnumerator FlipBack(Card firstCard, Card secondCard)
-    //{
-    //    yield return new WaitForSeconds(0.5f);
-    //    firstCard.Flip();
-    //    secondCard.Flip();
-    //}
 
     public bool IsCardMatched(int cardId)
     {
@@ -374,7 +273,6 @@ public class CardGameManager : Singleton<CardGameManager>
                 columns = 5;
                 break;
         }
-        Debug.Log($"Difficulty set to {difficultyLevel} (Rows: {rows}, Columns: {columns})");
     }
 
     public int GetCurrentDifficulty()

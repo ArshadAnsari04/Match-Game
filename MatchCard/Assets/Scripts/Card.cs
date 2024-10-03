@@ -158,9 +158,7 @@ public class Card : MonoBehaviour
         else
         {
             flipped = isFlipped; // Restore flipped state
-            UpdateCardSprite(); // Update the sprite without animation
-           // CardGameManager.Instance.CardClicked(spriteID, id);
-            //StartCoroutine(SelectionEvent());
+
         }
     }
 

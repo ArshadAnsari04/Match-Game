@@ -11,13 +11,7 @@ public class UIManager : Singleton<UIManager>
     [SerializeField] private GameObject winScreen;
     [SerializeField] private TMP_Dropdown difficultyDropdown;// = 2;
 
-
-    private void Start()
-    {
-
-        GameData gameData = new GameData();
-        difficultyDropdown.value =CardGameManager.Instance.GetCurrentDifficulty();
-    }
+    
     /// <summary>
     /// This Function is called when start the game
     /// </summary>
@@ -32,8 +26,7 @@ public class UIManager : Singleton<UIManager>
         else
         {
             CardGameManager.Instance.StartCardGame(false);
-            // Handle case where no saved game exists
-            Debug.Log("No saved game found!");
+          
         }
     }
     public void UpdateScore(int score)
